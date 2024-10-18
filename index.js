@@ -3,12 +3,18 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const { connectToDB } = require("./connect");
 const userRouter = require("./routes/user");
-const { authMiddleware } = require("./middlewares/auth");
+const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(
+  cors({
+    origin: "*",
+    exposedHeaders: ["X-token", "name"],
+  })
+);
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 

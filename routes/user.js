@@ -13,12 +13,22 @@ router.post("/register", async (req, res, next) => {
     if (!user) {
       const hashPassword = await bcrypt.hash(password, 10);
 
-      await User.create({
+      const user = await User.create({
         name,
         email,
         password: hashPassword,
       });
 
+      const token = await jwt.sign(
+        {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+        process.env.SECRET
+      );
+      res.header("X-token", token);
+      res.header("name", user.name);
       return res.status(201).json({
         msg: "User registered successfully!!",
       });
@@ -46,6 +56,7 @@ router.post("/login", async (req, res, next) => {
           process.env.SECRET
         );
         res.header("X-token", token);
+        res.header("name", user.name);
         res.status(200).json({
           msg: "User logged in successfully!",
         });
