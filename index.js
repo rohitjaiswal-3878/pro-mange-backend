@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const { connectToDB } = require("./connect");
 const userRouter = require("./routes/user");
+const taskRouter = require("./routes/task");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -29,7 +30,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Routes
 app.use("/auth", userRouter);
+app.use("/task", taskRouter);
 
 // Handling server error.
 app.use((err, req, res, next) => {
