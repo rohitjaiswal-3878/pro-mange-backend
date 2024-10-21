@@ -71,4 +71,28 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
+// Search user
+router.get("/filter/:enteredEmail", async (req, res, next) => {
+  try {
+    const { enteredEmail } = req.params;
+
+    if (enteredEmail != "*") {
+      const results = await User.find(
+        {
+          email: {
+            $regex: `${enteredEmail}`,
+            $options: "i",
+          },
+        },
+        { _id: 0, email: 1 }
+      );
+      return res.status(200).json(results);
+    } else {
+      return res.status(200).json([]);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
