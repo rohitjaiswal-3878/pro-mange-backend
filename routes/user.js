@@ -3,6 +3,7 @@ const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const { authMiddleware } = require("../middlewares/auth");
 
 // Register route
 router.post("/register", async (req, res, next) => {
@@ -72,17 +73,28 @@ router.post("/login", async (req, res, next) => {
 });
 
 // Search user
-router.get("/filter/:enteredEmail", async (req, res, next) => {
+router.get("/filter/:enteredEmail", authMiddleware, async (req, res, next) => {
   try {
     const { enteredEmail } = req.params;
-
+    const user = req.user;
     if (enteredEmail != "*") {
       const results = await User.find(
         {
-          email: {
-            $regex: `${enteredEmail}`,
-            $options: "i",
-          },
+          $and: [
+            {
+              email: {
+                $not: {
+                  $eq: user.email,
+                },
+              },
+            },
+            {
+              email: {
+                $regex: `${enteredEmail}`,
+                $options: "i",
+              },
+            },
+          ],
         },
         { _id: 0, email: 1 }
       );

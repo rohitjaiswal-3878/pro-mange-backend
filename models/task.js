@@ -28,7 +28,7 @@ const taskSchema = new mongoose.Schema(
       type: [checklistSchema],
     },
     due: {
-      type: mongoose.Schema.Types.Date,
+      type: String,
     },
     assign: {
       type: String,
