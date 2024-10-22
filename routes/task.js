@@ -24,4 +24,18 @@ router.post("/create", authMiddleware, async (req, res, next) => {
   }
 });
 
+// Get tasks by userId
+router.get("/tasks",authMiddleware, async(req,res, next) => {
+  try {
+    const user = req.user;
+    const results = await Task.find({
+      userId : user._id
+    })
+    return res.status(200).json(results);
+    
+  } catch (error) {
+    next(error)
+  }
+})
+
 module.exports = router;
