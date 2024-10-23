@@ -33,6 +33,11 @@ const taskSchema = new mongoose.Schema(
     assign: {
       type: String,
     },
+    board: {
+      type: String,
+      required: true,
+      default: "todo",
+    },
   },
   {
     timestamps: true,
