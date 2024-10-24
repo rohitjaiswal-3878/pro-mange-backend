@@ -31,7 +31,7 @@ const taskSchema = new mongoose.Schema(
       type: String,
     },
     assign: {
-      type: String,
+      type: [String],
     },
     board: {
       type: String,
