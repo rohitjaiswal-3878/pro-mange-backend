@@ -9,7 +9,7 @@ const mongoose = require("mongoose");
 // Create tasks
 router.post("/create", authMiddleware, async (req, res, next) => {
   try {
-    const { title, priority, checklist, due, assign } = req.body;
+    const { title, priority, checklist, due, assign, assignTo } = req.body;
     const user = req.user;
 
     await Task.create({
@@ -19,6 +19,7 @@ router.post("/create", authMiddleware, async (req, res, next) => {
       checklist,
       due,
       assign,
+      assignTo,
     });
 
     res.status(201).json({ msg: "Task created successfully!" });
@@ -37,6 +38,7 @@ router.get("/tasks", authMiddleware, async (req, res, next) => {
           $or: [
             { userId: new mongoose.Types.ObjectId(user._id) },
             { assign: user.email },
+            { assignTo: user.email },
           ],
         },
       },
@@ -102,7 +104,6 @@ router.patch("/add-people", authMiddleware, async (req, res, next) => {
 
     if (user.email != assignTo) {
       const assignUser = await User.findOne({ email: assignTo });
-      console.log(assignUser);
       if (assignUser) {
         const result = await Task.updateMany(
           {
