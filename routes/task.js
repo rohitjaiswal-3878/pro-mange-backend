@@ -11,7 +11,7 @@ router.post("/create", authMiddleware, async (req, res, next) => {
   try {
     const { title, priority, checklist, due, assign, assignTo } = req.body;
     const user = req.user;
-
+    const assignToObj = { assignUser: assignTo, userId: user._id };
     await Task.create({
       userId: user._id,
       title,
@@ -19,7 +19,7 @@ router.post("/create", authMiddleware, async (req, res, next) => {
       checklist,
       due,
       assign,
-      assignTo,
+      assignTo: assignToObj,
     });
 
     res.status(201).json({ msg: "Task created successfully!" });
@@ -38,7 +38,7 @@ router.get("/tasks", authMiddleware, async (req, res, next) => {
           $or: [
             { userId: new mongoose.Types.ObjectId(user._id) },
             { assign: user.email },
-            { assignTo: user.email },
+            { "assignTo.assignUser": user.email },
           ],
         },
       },

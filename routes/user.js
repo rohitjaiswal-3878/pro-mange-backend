@@ -32,6 +32,7 @@ router.post("/register", async (req, res, next) => {
       res.header("name", user.name);
       return res.status(201).json({
         msg: "User registered successfully!!",
+        userId: user._id,
       });
     } else {
       return res.status(400).json({
@@ -60,6 +61,7 @@ router.post("/login", async (req, res, next) => {
         res.header("name", user.name);
         res.status(200).json({
           msg: "User logged in successfully!",
+          userId: user._id,
         });
       } else {
         return res.status(401).json({ msg: "Invalid email or password!" });

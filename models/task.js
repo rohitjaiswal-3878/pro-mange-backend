@@ -9,6 +9,11 @@ const checklistSchema = new mongoose.Schema({
   },
 });
 
+const assignSchema = new mongoose.Schema({
+  assignUser: String,
+  userId: String,
+});
+
 const taskSchema = new mongoose.Schema(
   {
     userId: {
@@ -34,7 +39,7 @@ const taskSchema = new mongoose.Schema(
       type: [String],
     },
     assignTo: {
-      type: String,
+      type: assignSchema,
     },
     board: {
       type: String,
