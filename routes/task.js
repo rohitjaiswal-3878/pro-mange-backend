@@ -29,16 +29,58 @@ router.post("/create", authMiddleware, async (req, res, next) => {
 });
 
 // Get tasks by userId
-router.get("/tasks", authMiddleware, async (req, res, next) => {
+router.get("/tasks/:filter", authMiddleware, async (req, res, next) => {
   try {
+    const filter = req.params.filter;
+    let start, end;
+    if (filter == "today") {
+      const today = new Date();
+      const date = new Date();
+      date.setDate(today.getDate() - 1);
+      start = date.toLocaleDateString("en-CA") + "T18:30:00Z";
+      end = today.toLocaleDateString("en-CA") + "T18:30:00Z";
+    } else if (filter == "week") {
+      const date = new Date();
+
+      const startOfWeek = new Date();
+      startOfWeek.setDate(date.getDate() - date.getDay());
+
+      const endOfweek = new Date(startOfWeek);
+      endOfweek.setDate(startOfWeek.getDate() + 7);
+
+      start = startOfWeek.toLocaleDateString("en-CA") + "T18:30:00Z";
+      end = endOfweek.toLocaleDateString("en-CA") + "T18:30:00Z";
+    } else {
+      const date = new Date();
+
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
+      const startDate = new Date(year, month, 0);
+      const endDate = new Date(year, month + 1, 0);
+
+      start = startDate.toLocaleDateString("en-CA") + "T18:30:00Z";
+      end = endDate.toLocaleDateString("en-CA") + "T18:30:00Z";
+    }
+
     const user = req.user;
     const results = await Task.aggregate([
       {
         $match: {
-          $or: [
-            { userId: new mongoose.Types.ObjectId(user._id) },
-            { assign: user.email },
-            { "assignTo.assignUser": user.email },
+          $and: [
+            {
+              $or: [
+                { userId: new mongoose.Types.ObjectId(user._id) },
+                { assign: user.email },
+                { "assignTo.assignUser": user.email },
+              ],
+            },
+            {
+              createdAt: {
+                $gte: new Date(start),
+                $lte: new Date(end),
+              },
+            },
           ],
         },
       },
