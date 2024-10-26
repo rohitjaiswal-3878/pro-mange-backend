@@ -175,4 +175,107 @@ router.patch("/add-people", authMiddleware, async (req, res, next) => {
   }
 });
 
+// Task analytics.
+router.get("/analytics", authMiddleware, async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    const boardResults = await Task.aggregate([
+      {
+        $match: {
+          $or: [
+            { userId: new mongoose.Types.ObjectId(user._id) },
+            { assign: user.email },
+            { "assignTo.assignUser": user.email },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "$board",
+          count: {
+            $sum: 1,
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          board: "$_id",
+          count: 1,
+        },
+      },
+    ]);
+
+    const priorityResults = await Task.aggregate([
+      {
+        $match: {
+          $or: [
+            { userId: new mongoose.Types.ObjectId(user._id) },
+            { assign: user.email },
+            { "assignTo.assignUser": user.email },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "$priority",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: { _id: 0, priority: "$_id", count: 1 },
+      },
+    ]);
+
+    const dueDate = await Task.aggregate([
+      {
+        $match: {
+          $and: [
+            {
+              $or: [
+                { userId: new mongoose.Types.ObjectId(user._id) },
+                { assign: user.email },
+                { "assignTo.assignUser": user.email },
+              ],
+            },
+            {
+              due: { $ne: "" },
+            },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          due: "due",
+          count: 1,
+        },
+      },
+    ]);
+
+    let result = {};
+
+    boardResults.forEach((e, i) => {
+      result[e.board] = e.count;
+    });
+
+    priorityResults.forEach((e, i) => {
+      result[e.priority] = e.count;
+    });
+
+    result[dueDate[0].due] = dueDate[0].count;
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
