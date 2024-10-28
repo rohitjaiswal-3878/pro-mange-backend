@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const { authMiddleware } = require("../middlewares/auth");
+const Task = require("../models/task");
 
 // Register route
 router.post("/register", async (req, res, next) => {
@@ -104,6 +105,81 @@ router.get("/filter/:enteredEmail", authMiddleware, async (req, res, next) => {
     } else {
       return res.status(200).json([]);
     }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Returns user details.
+router.get("/details", authMiddleware, async (req, res, next) => {
+  try {
+    const user = req.user;
+    return res.json({ name: user.name, email: user.email });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user details.
+router.patch("/change", authMiddleware, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const updatedDetails = req.body.updatedDetails;
+
+    if (updatedDetails.password != "" && updatedDetails.newPassword != "") {
+      const userPassword = await User.findById(user._id).select("password");
+
+      const verify = await bcrypt.compare(
+        updatedDetails.password,
+        userPassword.password
+      );
+
+      if (verify) {
+        const hash = await bcrypt.hash(updatedDetails.newPassword, 10);
+        await User.findByIdAndUpdate(user._id, { password: hash });
+      } else {
+        return res.status(400).json({ msg: "Incorrect password!" });
+      }
+    }
+
+    if (user.name != updatedDetails.name) {
+      await User.findByIdAndUpdate(user._id, {
+        name: updatedDetails.name,
+      });
+    }
+
+    if (user.email.toString() != updatedDetails.email) {
+      await Task.updateMany(
+        {
+          assign: user.email,
+        },
+        {
+          $set: {
+            "assign.$[e]": updatedDetails.email,
+          },
+        },
+        {
+          arrayFilters: [{ e: user.email }],
+        }
+      );
+
+      await Task.updateMany(
+        {
+          "assignTo.assignUser": user.email,
+        },
+        {
+          $set: {
+            "assignTo.assignUser": updatedDetails.email,
+          },
+        }
+      );
+
+      await User.findByIdAndUpdate(user._id, {
+        email: updatedDetails.email,
+      });
+    }
+
+    return res.status(200).json({ msg: "Updated!" });
   } catch (error) {
     next(error);
   }

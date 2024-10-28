@@ -270,7 +270,9 @@ router.get("/analytics", authMiddleware, async (req, res, next) => {
       result[e.priority] = e.count;
     });
 
-    result[dueDate[0].due] = dueDate[0].count;
+    if (dueDate.length != 0) {
+      result[dueDate[0].due] = dueDate[0].count;
+    }
 
     res.status(200).json(result);
   } catch (error) {
