@@ -280,4 +280,37 @@ router.get("/analytics", authMiddleware, async (req, res, next) => {
   }
 });
 
+// Update Content of task.
+router.patch("/update", authMiddleware, async (req, res, next) => {
+  try {
+    const { _id, userId, title, priority, assignTo, due, checklist } = req.body;
+
+    await Task.findByIdAndUpdate(_id, {
+      title,
+      priority,
+      assignTo,
+      checklist,
+      due,
+    });
+
+    res.status(200).json({ msg: "Task updated successfully!" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get task by task id.
+router.get("/single/:taskId", authMiddleware, async (req, res, next) => {
+  try {
+    const taskId = req.params.taskId;
+    const result = await Task.findById(taskId).select(
+      "title priority assignTo checklist due userId"
+    );
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
