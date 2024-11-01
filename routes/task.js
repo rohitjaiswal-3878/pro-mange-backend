@@ -300,17 +300,38 @@ router.patch("/update", authMiddleware, async (req, res, next) => {
 });
 
 // Get task by task id.
-router.get("/single/:taskId", authMiddleware, async (req, res, next) => {
+router.get("/single/:taskId", async (req, res, next) => {
   try {
     const taskId = req.params.taskId;
     const result = await Task.findById(taskId).select(
       "title priority assignTo checklist due userId"
     );
 
-    res.json(result);
+    if(result){
+      res.json(result);
+    }else{
+      res.status(404).json({msg : "Task not found!"})
+    }
   } catch (error) {
     next(error);
   }
 });
+
+// Delete task by ID.
+router.delete("/remove/:taskId", authMiddleware, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const taskId = req.params.taskId;
+    const task = await Task.findById(taskId);
+    if(task.userId == user._id){
+      await Task.findByIdAndDelete(taskId);
+      return res.status(200).json({msg : "Task deleted successfully!"})
+    }else{
+      res.status(400).json({msg : "Only Owner can delete the task!"})
+    }
+  } catch (error) {
+    next(error)
+  }
+})
 
 module.exports = router;
