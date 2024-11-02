@@ -33,7 +33,7 @@ const taskSchema = new mongoose.Schema(
       type: [checklistSchema],
     },
     due: {
-      type: String,
+      type: Date,
     },
     assign: {
       type: [String],

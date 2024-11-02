@@ -9,16 +9,43 @@ const mongoose = require("mongoose");
 // Create tasks
 router.post("/create", authMiddleware, async (req, res, next) => {
   try {
-    const { title, priority, checklist, due, assign, assignTo } = req.body;
     const user = req.user;
+
+    const userAssignedToBoard = await Task.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(user._id),
+        },
+      },
+      {
+        $unwind: "$assign",
+      },
+      {
+        $group: {
+          _id: null,
+          assigns: {
+            $addToSet: "$assign",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          assigns: 1,
+        },
+      },
+    ]);
+
+    const { title, priority, checklist, due, assign, assignTo } = req.body;
     const assignToObj = { assignUser: assignTo, userId: user._id };
     await Task.create({
       userId: user._id,
       title,
       priority,
       checklist,
-      due,
-      assign,
+      due: due ? new Date(due) : "",
+      assign:
+        userAssignedToBoard.length == 0 ? [] : userAssignedToBoard[0].assigns,
       assignTo: assignToObj,
     });
 
@@ -76,10 +103,17 @@ router.get("/tasks/:filter", authMiddleware, async (req, res, next) => {
               ],
             },
             {
-              createdAt: {
-                $gte: new Date(start),
-                $lte: new Date(end),
-              },
+              $or: [
+                {
+                  due: null,
+                },
+                {
+                  due: {
+                    $gte: new Date(start),
+                    $lte: new Date(end),
+                  },
+                },
+              ],
             },
           ],
         },
@@ -155,6 +189,12 @@ router.patch("/add-people", authMiddleware, async (req, res, next) => {
             $addToSet: { assign: assignTo },
           }
         );
+
+        if (result.modifiedCount == 0) {
+          return res.status(400).json({
+            msg: "Insert atleast one task before adding people to board!",
+          });
+        }
 
         return res.status(200).json({
           msg: "User successfully added to the board!",
@@ -240,7 +280,7 @@ router.get("/analytics", authMiddleware, async (req, res, next) => {
               ],
             },
             {
-              due: { $ne: "" },
+              due: { $ne: null },
             },
           ],
         },
@@ -307,10 +347,10 @@ router.get("/single/:taskId", async (req, res, next) => {
       "title priority assignTo checklist due userId"
     );
 
-    if(result){
+    if (result) {
       res.json(result);
-    }else{
-      res.status(404).json({msg : "Task not found!"})
+    } else {
+      res.status(404).json({ msg: "Task not found!" });
     }
   } catch (error) {
     next(error);
@@ -320,18 +360,47 @@ router.get("/single/:taskId", async (req, res, next) => {
 // Delete task by ID.
 router.delete("/remove/:taskId", authMiddleware, async (req, res, next) => {
   try {
-    const user = req.user;
     const taskId = req.params.taskId;
-    const task = await Task.findById(taskId);
-    if(task.userId == user._id){
-      await Task.findByIdAndDelete(taskId);
-      return res.status(200).json({msg : "Task deleted successfully!"})
-    }else{
-      res.status(400).json({msg : "Only Owner can delete the task!"})
-    }
+    await Task.findByIdAndDelete(taskId);
+    return res.status(200).json({ msg: "Task deleted successfully!" });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
+
+// Get all assigned board user email.
+router.get("/board/users", authMiddleware, async (req, res, next) => {
+  try {
+    const user = req.user;
+    const userAssignedToBoard = await Task.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(user._id),
+        },
+      },
+      {
+        $unwind: "$assign",
+      },
+      {
+        $group: {
+          _id: null,
+          assigns: {
+            $addToSet: "$assign",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          assigns: 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json(userAssignedToBoard[0]);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;
